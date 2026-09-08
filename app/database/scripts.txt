@@ -1,0 +1,76 @@
+--ACCESO MEDIANTE ROLES--
+CREATE TABLE Roles (
+	id_rol INTEGER PRIMARY KEY AUTOINCREMENT, 
+	nombre_rol TEXT
+);
+
+
+--INFORMACION DEL USUARIO--
+CREATE TABLE Usuarios (
+    id_usuario INTEGER PRIMARY KEY AUTOINCREMENT,
+    id_rol INTEGER NOT NULL REFERENCES Roles(id_rol),
+    nombre TEXT NOT NULL,
+    usuario TEXT NOT NULL UNIQUE,
+    password TEXT NOT NULL
+);
+
+
+INSERT INTO Roles (nombre_rol)
+VALUES ("Tools"), ("Operaciones"), ("Validacion"), ("Mantenimiento"), ("Gerente"), ("Tecnico")
+
+
+INSERT INTO Usuarios (id_rol, nombre, usuario, password)
+VALUES (1, "Alexander Rangel", "AlRangel", "Rangel21"), (1, "Jehu Arcadia", "JArcadia", "Arcadia123")
+
+
+
+--LLEVA EL CONTEO DEL ULTIMO RACK REGISTRADO--
+CREATE TABLE Contador (
+	id INTEGER PRIMARY KEY CHECK(id = 1),
+	siguiente INTEGER NOT NULL
+);
+
+INSERT INTO Contador (id, siguiente)
+VALUES (1,1)
+
+
+--AREAS--
+CREATE TABLE Areas(
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	nombre TEXT NOT NULL UNIQUE
+);
+
+INSERT INTO Areas(nombre)
+VALUES ('Laboratorio'),('TTR')
+
+
+-- INFORMACION DEL RACK --
+CREATE TABLE Racks (
+	id TEXT PRIMARY KEY, 
+	area_id INTEGER NOT NULL REFERENCES Areas(id),
+	descripcion TEXT,
+	disponibilidad TEXT NOT NULL CHECK (disponibilidad IN ('Disponible', 'No disponible'))
+);
+
+--DATOS DE PRUEBA--
+INSERT INTO Racks (id, area_id, descripcion, disponibilidad)
+VALUES ('RC-500', 1, 'Prueba Toyota Speakers', 'No disponible');
+
+--APLICA EL TRIGGER--
+INSERT INTO Racks (area_id, descripcion, disponibilidad)
+VALUES (2, '-', 'Disponible');
+
+
+
+---- Trigger: si al insertar no se manda "id" (NULL), se genera automáticamente con el formato RC-### usando el contador. Si sí se manda un id, se respeta tal cual (inserción manual) y el trigger no hace nada.--
+CREATE TRIGGER trg_generar_id
+AFTER INSERT ON Racks
+FOR EACH ROW
+WHEN NEW.id IS NULL
+BEGIN
+    UPDATE Racks
+    SET id = 'RC-' || printf('%03d', (SELECT siguiente FROM contador WHERE id = 1))
+    WHERE rowid = NEW.rowid;
+ 
+    UPDATE contador SET siguiente = siguiente + 1 WHERE id = 1;
+END;
